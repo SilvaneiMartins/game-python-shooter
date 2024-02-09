@@ -1,11 +1,15 @@
+import pygame
+from pygame import mixer
+
 import os
 import csv
 import button
 import random
-import pygame
+
 from pygame.transform import scale
 
 # Inicializa o game
+mixer.init()
 pygame.init()
 
 # Set the screen size
@@ -33,6 +37,7 @@ screen_scroll = 0
 bg_scroll = 0
 level = 1
 start_game = False
+start_intro = False
 
 # Variaveis ação do jogador
 moving_left = False
@@ -40,6 +45,19 @@ moving_right = False
 shoot = False
 grenade = False
 grenade_thrown = False
+
+# Carregar música e sons
+pygame.mixer.music.load('audio/music2.mp3')
+pygame.mixer.music.set_volume(0.1)
+pygame.mixer.music.play(-1, 0.0, 5000)
+
+# Carregar efeitos sonoros
+jump_fx = pygame.mixer.Sound('audio/jump.wav')
+jump_fx.set_volume(0.3)
+shot_fx = pygame.mixer.Sound('audio/shot.wav')
+shot_fx.set_volume(0.3)
+grenade_fx = pygame.mixer.Sound('audio/grenade.wav')
+grenade_fx.set_volume(0.3)
 
 # Carregar Imagens
 # Carregar imagens do botão
@@ -80,6 +98,7 @@ RED = (255, 0, 0)
 WHITE = (255, 255, 255)
 GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
+PINK = (235, 65, 54)
 
 # Carregar fonte
 font = pygame.font.SysFont('JetBrainsMono Nerd Font', 20)
@@ -278,6 +297,7 @@ class Soldier(pygame.sprite.Sprite):
 
             # Reduzir munição
             self.ammo -= 1
+            shot_fx.play()
 
     def ai(self):
         if self.alive and player.alive:
@@ -595,6 +615,7 @@ class Grenade(pygame.sprite.Sprite):
         self.timer -= 1
         if self.timer <= 0:
             self.kill()
+            grenade_fx.play()
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
             # causar danos a qualquer pessoa que esteja por perto
@@ -643,6 +664,40 @@ class Explosion(pygame.sprite.Sprite):
             else:
                 self.image = self.images[self.frame_index]
 
+# Classe da tela de fade
+
+
+class ScreenFade():
+    def __init__(self, direction, color, speed):
+        self.direction = direction
+        self.color = color
+        self.speed = speed
+        self.fade_counter = 0
+
+    def fade(self):
+        fade_complete = False
+        self.fade_counter += self.speed
+        if self.direction == 1:  # desbotamento da tela inteira
+            pygame.draw.rect(
+                screen, self.color, (0 - self.fade_counter, 0, SCREEN_WIDTH // 2, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color, (SCREEN_WIDTH //
+                             2 + self.fade_counter, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.color, (0, 0 -
+                             self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
+            pygame.draw.rect(screen, self.color, (0, SCREEN_HEIGHT //
+                             2 + self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT))
+        if self.direction == 2:  # desbotamento da tela inteira
+            pygame.draw.rect(screen, self.color,
+                             (0, 0, SCREEN_WIDTH, 0 + self.fade_counter))
+        if self.fade_counter >= SCREEN_HEIGHT:
+            fade_complete = True
+
+        return fade_complete
+
+
+# Cria tela de fade
+intro_face  = ScreenFade(1, BLACK, 4)
+death_fade = ScreenFade(2, PINK, 4)
 
 # cria sprite do status do jogador
 start_button = button.Button(
@@ -650,7 +705,7 @@ start_button = button.Button(
 exit_button = button.Button(SCREEN_WIDTH // 2 - 110,
                             SCREEN_HEIGHT // 2 + 50, exit_png, 1)
 restart_button = button.Button(SCREEN_WIDTH // 2 - 100,
-                            SCREEN_HEIGHT // 2 - 50, restart_png, 2)
+                               SCREEN_HEIGHT // 2 - 50, restart_png, 2)
 
 # Criar grupos de sprites
 enemy_group = pygame.sprite.Group()
@@ -690,6 +745,7 @@ while run:
         # Adiciona botão de início
         if start_button.draw(screen):
             start_game = True
+            start_intro = True
         # Adiciona botão de saída
         if exit_button.draw(screen):
             run = False
@@ -740,6 +796,12 @@ while run:
         water_group.draw(screen)
         exit_group.draw(screen)
 
+        # Monstrar a tela de introdução
+        if start_intro == True:
+            if intro_face.fade():
+                start_intro = False
+                intro_face.fade_counter = 0
+
         # Movimento do jogador
         if player.alive:
             if shoot:
@@ -758,12 +820,13 @@ while run:
                 player.update_action(1)  # 1: run
             else:
                 player.update_action(0)  # 0: idle
-            screen_scroll, level_complete = player.move(moving_left, moving_right)
+            screen_scroll, level_complete = player.move(
+                moving_left, moving_right)
             bg_scroll -= screen_scroll
 
             # se o jogador completou o nível
             if level_complete:
-                start_game = False
+                start_intro = True
                 level += 1
                 bg_scroll = 0
                 world_data = reset_level()
@@ -778,17 +841,22 @@ while run:
                     player, health_bar = world.process_data(world_data)
         else:
             screen_scroll = 0
-            if restart_button.draw(screen):
-                # resetar o jogo e o nível
-                bg_scroll = 0
-                world_data = reset_level()
-                with open(f'level{level}_data.csv', newline='') as csvfile:
-                    reader = csv.reader(csvfile, delimiter=',')
-                    for x, row in enumerate(reader):
-                        for y, tile in enumerate(row):
-                            world_data[x][y] = int(tile)
-                world = World()
-                player, health_bar = world.process_data(world_data)
+            if death_fade.fade():
+                if restart_button.draw(screen):
+                    # resetar o jogo e o nível
+                    death_fade.fade_counter = 0
+                    start_intro = True
+
+                    # resetar o jogo e o nível
+                    bg_scroll = 0
+                    world_data = reset_level()
+                    with open(f'level{level}_data.csv', newline='') as csvfile:
+                        reader = csv.reader(csvfile, delimiter=',')
+                        for x, row in enumerate(reader):
+                            for y, tile in enumerate(row):
+                                world_data[x][y] = int(tile)
+                    world = World()
+                    player, health_bar = world.process_data(world_data)
 
     # Atualiza a tela
 
@@ -809,6 +877,7 @@ while run:
                 grenade = True
             if event.key == pygame.K_w and player.alive:
                 player.jump = True
+                jump_fx.play()
             if event.key == pygame.K_ESCAPE:
                 run = False
 
