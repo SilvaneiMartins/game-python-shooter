@@ -131,6 +131,8 @@ class Soldier(pygame.sprite.Sprite):
         self.image = self.animation_list[self.action][self.frame_index]
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
 
     # Atualizar o jogador
     def update(self):
@@ -170,9 +172,21 @@ class Soldier(pygame.sprite.Sprite):
         dy += self.vel_y
 
         # Checar colisão com o chão
-        if self.rect.bottom + dy > 300:
-            dy = 300 - self.rect.bottom
-            self.in_air = False
+        for tile in world.obstacle_list:
+            # Checar colisão com o chão na direção x
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                dx = 0
+            # Checar colisão com o teto na direção y
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                # verifique se está abaixo do solo, ou seja, pulando
+                if self.vel_y < 0:
+                    self.vel_y = 0
+                    dy = tile[1].bottom - self.rect.top
+                # verifique se está acima do solo, ou seja, caindo
+                elif self.vel_y >= 0:
+                    self.vel_y = 0
+                    self.in_air = False
+                    dy = tile[1].top - self.rect.bottom
 
         # Atualizar posição do retângulo
         self.rect.x += dx
@@ -283,28 +297,35 @@ class World():
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
 
-                    if tile >= 0 and tile <= 8:# parede
+                    if tile >= 0 and tile <= 8:  # parede
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 10:# agua
+                    elif tile >= 9 and tile <= 10:  # agua
                         water = Water(img, x * TILE_SIZE, y * TILE_SIZE)
                         water_group.add(water)
-                    elif tile >= 11 and tile <= 14:# decoração
-                        decoration = Decoration(img, x * TILE_SIZE, y * TILE_SIZE)
+                    elif tile >= 11 and tile <= 14:  # decoração
+                        decoration = Decoration(
+                            img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
-                    elif tile == 15:# Cria o jogador
-                        player = Soldier("player", x * TILE_SIZE, y * TILE_SIZE, 1.65, 5, 20, 5)
-                        Health_bar = HealthBar(10, 10, player.health, player.health)
-                    elif tile == 16:# criar inimigo
-                        enemy = Soldier('enemy', x * TILE_SIZE, y * TILE_SIZE, 1.65, 2, 20, 0)
+                    elif tile == 15:  # Cria o jogador
+                        player = Soldier("player", x * TILE_SIZE,
+                                         y * TILE_SIZE, 1.65, 5, 20, 5)
+                        Health_bar = HealthBar(
+                            10, 10, player.health, player.health)
+                    elif tile == 16:  # criar inimigo
+                        enemy = Soldier('enemy', x * TILE_SIZE,
+                                        y * TILE_SIZE, 1.65, 2, 20, 0)
                         enemy_group.add(enemy)
-                    elif tile == 17:# criar carixa de armas
-                        item_box = ItemBox('Ammo', x * TILE_SIZE, y * TILE_SIZE)
+                    elif tile == 17:  # criar carixa de armas
+                        item_box = ItemBox(
+                            'Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 18:# criar caixa de granadas
-                        item_box = ItemBox('Grenade', x * TILE_SIZE, y * TILE_SIZE)
+                    elif tile == 18:  # criar caixa de granadas
+                        item_box = ItemBox(
+                            'Grenade', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 19:# criar caixa de saúde
-                        item_box = ItemBox('Health', x * TILE_SIZE, y * TILE_SIZE)
+                    elif tile == 19:  # criar caixa de saúde
+                        item_box = ItemBox(
+                            'Health', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
                     elif tile == 20:
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
@@ -313,15 +334,18 @@ class World():
 
     def draw(self):
         for tile in self.obstacle_list:
-            screen.blit(tile[0], tile[1]) 
+            screen.blit(tile[0], tile[1])
 
 # Classe Decoração
+
+
 class Decoration(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
         self.image = img
         self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+        self.rect.midtop = (x + TILE_SIZE // 2, y +
+                            (TILE_SIZE - self.image.get_height()))
 
 
 # Classe Agua
@@ -330,7 +354,8 @@ class Water(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = img
         self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+        self.rect.midtop = (x + TILE_SIZE // 2, y +
+                            (TILE_SIZE - self.image.get_height()))
 
 
 # Classe Sair
@@ -339,7 +364,8 @@ class Exit(pygame.sprite.Sprite):
         pygame.sprite.Sprite.__init__(self)
         self.image = img
         self.rect = self.image.get_rect()
-        self.rect.midtop = (x + TILE_SIZE // 2, y + (TILE_SIZE - self.image.get_height()))
+        self.rect.midtop = (x + TILE_SIZE // 2, y +
+                            (TILE_SIZE - self.image.get_height()))
 
 
 # Classe Item Box
@@ -408,6 +434,11 @@ class Bullet(pygame.sprite.Sprite):
         # Checar se a bala saiu da tela
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
+        
+        # Checar colisão com o mapa
+        for tile in world.obstacle_list:
+            if tile[1].colliderect(self.rect):
+                self.kill()
 
         # Checar colisão com personagens
         if pygame.sprite.spritecollide(player, bullet_group, False):
@@ -432,6 +463,8 @@ class Grenade(pygame.sprite.Sprite):
         self.image = grenade_img
         self.rect = self.image.get_rect()
         self.rect.center = (x, y)
+        self.width = self.image.get_width()
+        self.height = self.image.get_height()
         self.direction = direction
 
     def update(self):
@@ -439,27 +472,41 @@ class Grenade(pygame.sprite.Sprite):
         dx = self.direction * self.speed
         dy = self.vel_y
 
-        # check collision with floor
-        if self.rect.bottom + dy > 300:
-            dy = 300 - self.rect.bottom
-            self.speed = 0
+        # verifique a colisão com o nível
+        for tile in world.obstacle_list:
+            # verifique colisão com paredes
+            if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
+                self.direction *= -1
+                dx = self.direction * self.speed
+            # Checar colisão com o teto na direção y
+            if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
+                self.speed = 0
+                # verifique se está abaixo do solo, ou seja pulando
+                if self.vel_y < 0:
+                    self.vel_y = 0
+                    dy = tile[1].bottom - self.rect.top
+                # verifique se está acima do solo, ou seja, caindo
+                elif self.vel_y >= 0:
+                    self.vel_y = 0
+                    self.in_air = False
+                    dy = tile[1].top - self.rect.bottom
 
-        # check collision with walls
+        # verifique colisão com paredes
         if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
             self.direction *= -1
             dx = self.direction * self.speed
 
-        # update grenade position
+        # atualizar posição da granada
         self.rect.x += dx
         self.rect.y += dy
 
-        # countdown timer
+        # temporizador de contagem regressiva
         self.timer -= 1
         if self.timer <= 0:
             self.kill()
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
-            # do damage to anyone that is nearby
+            # causar danos a qualquer pessoa que esteja por perto
             if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and \
                     abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
                 player.health -= 50
@@ -578,7 +625,6 @@ while run:
     decoration_group.draw(screen)
     water_group.draw(screen)
     exit_group.draw(screen)
-
 
     # Movimento do jogador
     if player.alive:
