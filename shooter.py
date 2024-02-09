@@ -21,11 +21,14 @@ FPS = 60
 
 # Variaveis do game
 GRAVITY = 0.75
+SCROLL_THRESH = 200
 TILE_SIZE = 40
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
 TILES_TYPES = 21
+screen_scroll = 0
+bg_scroll = 0
 level = 1
 
 # Variaveis ação do jogador
@@ -36,6 +39,11 @@ grenade = False
 grenade_thrown = False
 
 # Carregar Imagens
+# Carregar imagens de fundo
+pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
+pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
+mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
+sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
 # armazenar peças em uma lista
 img_list = []
 for x in range(TILES_TYPES):
@@ -77,7 +85,15 @@ def draw_text(text, font, text_col, x, y):
 
 def draw_bg():
     screen.fill(BG)
-    pygame.draw.line(screen, RED, (0, 300), (SCREEN_WIDTH, 300))
+    width = sky_img.get_width()
+    for x in range(5):
+        screen.blit(sky_img, ((x * width) - bg_scroll * 0.5, 0))
+        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT -
+                    mountain_img.get_height() - 300))
+        screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7,
+                    SCREEN_HEIGHT - pine1_img.get_height() - 150))
+        screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8,
+                    SCREEN_HEIGHT - pine2_img.get_height()))
 
 # Classe do jogador
 
@@ -146,6 +162,7 @@ class Soldier(pygame.sprite.Sprite):
     # Movimento do jogador
     def move(self, moving_left, moving_right):
         # Redefinir as variáveis de movimento
+        screen_scroll = 0
         dx = 0
         dy = 0
 
@@ -176,6 +193,10 @@ class Soldier(pygame.sprite.Sprite):
             # Checar colisão com o chão na direção x
             if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 dx = 0
+                # se a IA atingir uma parede, faça-a virar
+                if self.char_type == 'enemy':
+                    self.direction *= -1
+                    self.move_counter = 0
             # Checar colisão com o teto na direção y
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 # verifique se está abaixo do solo, ou seja, pulando
@@ -188,9 +209,22 @@ class Soldier(pygame.sprite.Sprite):
                     self.in_air = False
                     dy = tile[1].top - self.rect.bottom
 
+        # verifique se está saindo das bordas da tela
+        if self.char_type == 'player':
+            if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
+                dx = 0
+
         # Atualizar posição do retângulo
         self.rect.x += dx
         self.rect.y += dy
+
+        # Atualizar a posição do mapa
+        if self.char_type == 'player':
+            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH) or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
+                self.rect.x -= dx
+                screen_scroll = -dx
+
+        return screen_scroll
 
     # Atirar
     def shoot(self):
@@ -238,6 +272,9 @@ class Soldier(pygame.sprite.Sprite):
                     self.idling_counter -= 1
                     if self.idling_counter <= 0:
                         self.idling = False
+
+        # scroll do mapa
+        self.rect.x += screen_scroll
 
     # Atualizar animação
     def update_animation(self):
@@ -287,6 +324,7 @@ class World():
         self.obstacle_list = []
 
     def process_data(self, data):
+        self.level_length = len(data[0])
         # iterar através de cada valor no arquivo de dados de nível
         for y, row in enumerate(data):
             for x, tile in enumerate(row):
@@ -334,6 +372,7 @@ class World():
 
     def draw(self):
         for tile in self.obstacle_list:
+            tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
 
 # Classe Decoração
@@ -347,6 +386,9 @@ class Decoration(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y +
                             (TILE_SIZE - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
+
 
 # Classe Agua
 class Water(pygame.sprite.Sprite):
@@ -356,6 +398,9 @@ class Water(pygame.sprite.Sprite):
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y +
                             (TILE_SIZE - self.image.get_height()))
+
+    def update(self):
+        self.rect.x += screen_scroll
 
 
 # Classe Sair
@@ -367,6 +412,8 @@ class Exit(pygame.sprite.Sprite):
         self.rect.midtop = (x + TILE_SIZE // 2, y +
                             (TILE_SIZE - self.image.get_height()))
 
+    def update(self):
+        self.rect.x += screen_scroll
 
 # Classe Item Box
 
@@ -381,6 +428,8 @@ class ItemBox(pygame.sprite.Sprite):
                             (TILE_SIZE // - self.image.get_height()))
 
     def update(self):
+        # scroll
+        self.rect.x += screen_scroll
         # checa se o jogador coletou a caixa de item
         if pygame.sprite.collide_rect(self, player):
             # verifique que tipo de caixa era
@@ -429,12 +478,12 @@ class Bullet(pygame.sprite.Sprite):
 
     def update(self):
         # Mover a bala
-        self.rect.x += (self.direction * self.speed)
+        self.rect.x += (self.direction * self.speed) + screen_scroll
 
         # Checar se a bala saiu da tela
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
-        
+
         # Checar colisão com o mapa
         for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect):
@@ -497,7 +546,7 @@ class Grenade(pygame.sprite.Sprite):
             dx = self.direction * self.speed
 
         # atualizar posição da granada
-        self.rect.x += dx
+        self.rect.x += dx + screen_scroll
         self.rect.y += dy
 
         # temporizador de contagem regressiva
@@ -534,6 +583,9 @@ class Explosion(pygame.sprite.Sprite):
         self.counter = 0
 
     def update(self):
+        # scroll
+        self.rect.x += screen_scroll
+
         EXPLOSION_SPEED = 4
 
         # atualiza a animação da explosão
@@ -644,7 +696,10 @@ while run:
             player.update_action(1)  # 1: run
         else:
             player.update_action(0)  # 0: idle
-        player.move(moving_left, moving_right)
+        screen_scroll = player.move(moving_left, moving_right)
+        bg_scroll -= screen_scroll
+
+    # Atualiza a tela
 
     for event in pygame.event.get():
         # Sai do game
