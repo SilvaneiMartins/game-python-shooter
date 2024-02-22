@@ -1,37 +1,32 @@
 import pygame
 from pygame import mixer
-
 import os
+import random
 import csv
 import button
-import random
 
-from pygame.transform import scale
-
-# Inicializa o game
+# inicializa o mixer e o pygame
 mixer.init()
 pygame.init()
 
-# Set the screen size
-SCREEN_WIDTH = 900
-SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.8)
 
-# Crie a tela
+SCREEN_WIDTH = 1000
+SCREEN_HEIGHT = int(SCREEN_WIDTH * 0.7)
+
 screen = pygame.display.set_mode((SCREEN_WIDTH, SCREEN_HEIGHT))
-pygame.display.set_caption('Sam Atirador')
+pygame.display.set_caption('Shooter')
 
-# Definir taxa de quadros
+# definir taxa de quadros
 clock = pygame.time.Clock()
 FPS = 60
 
-# Variaveis do game
+# definir variáveis do jogo
 GRAVITY = 0.75
 SCROLL_THRESH = 200
-TILE_SIZE = 40
 ROWS = 16
 COLS = 150
 TILE_SIZE = SCREEN_HEIGHT // ROWS
-TILES_TYPES = 21
+TILE_TYPES = 21
 MAX_LEVELS = 3
 screen_scroll = 0
 bg_scroll = 0
@@ -39,60 +34,60 @@ level = 1
 start_game = False
 start_intro = False
 
-# Variaveis ação do jogador
+
+# definir variáveis de ação do jogador
 moving_left = False
 moving_right = False
 shoot = False
 grenade = False
 grenade_thrown = False
 
-# Carregar música e sons
-pygame.mixer.music.load('audio/music2.mp3')
-pygame.mixer.music.set_volume(0.1)
-pygame.mixer.music.play(-1, 0.0, 5000)
-
-# Carregar efeitos sonoros
 jump_fx = pygame.mixer.Sound('audio/jump.wav')
-jump_fx.set_volume(0.3)
+jump_fx.set_volume(0.05)
 shot_fx = pygame.mixer.Sound('audio/shot.wav')
-shot_fx.set_volume(0.3)
+shot_fx.set_volume(0.05)
 grenade_fx = pygame.mixer.Sound('audio/grenade.wav')
-grenade_fx.set_volume(0.3)
+grenade_fx.set_volume(0.05)
 
-# Carregar Imagens
-# Carregar imagens do botão
-start_png = pygame.image.load('img/start_btn.png').convert_alpha()
-exit_png = pygame.image.load('img/exit_btn.png').convert_alpha()
-restart_png = pygame.image.load('img/restart_btn.png').convert_alpha()
-# Carregar imagens de fundo
+
+# carrega imagens
+
+# imagens de botão
+start_img = pygame.image.load('img/start_btn.png').convert_alpha()
+exit_img = pygame.image.load('img/exit_btn.png').convert_alpha()
+restart_img = pygame.image.load('img/restart_btn.png').convert_alpha()
+
+# fundo
 pine1_img = pygame.image.load('img/Background/pine1.png').convert_alpha()
 pine2_img = pygame.image.load('img/Background/pine2.png').convert_alpha()
 mountain_img = pygame.image.load('img/Background/mountain.png').convert_alpha()
 sky_img = pygame.image.load('img/Background/sky_cloud.png').convert_alpha()
+
 # armazenar peças em uma lista
 img_list = []
-for x in range(TILES_TYPES):
-    img = pygame.image.load(f'img/tile/{x}.png')
+for x in range(TILE_TYPES):
+    img = pygame.image.load(f'img/Tile/{x}.png')
     img = pygame.transform.scale(img, (TILE_SIZE, TILE_SIZE))
     img_list.append(img)
+
 # bala
 bullet_img = pygame.image.load('img/icons/bullet.png').convert_alpha()
-# Granada
+
+# granada
 grenade_img = pygame.image.load('img/icons/grenade.png').convert_alpha()
-# Caixas de itens
-heal_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
+
+# pegar caixas
+health_box_img = pygame.image.load('img/icons/health_box.png').convert_alpha()
 ammo_box_img = pygame.image.load('img/icons/ammo_box.png').convert_alpha()
 grenade_box_img = pygame.image.load(
     'img/icons/grenade_box.png').convert_alpha()
-
-# Armazenar imagens em um dicionário
 item_boxes = {
-    'Health': heal_box_img,
+    'Health': health_box_img,
     'Ammo': ammo_box_img,
     'Grenade': grenade_box_img
 }
 
-# Definir cores
+# definir cores
 BG = (144, 201, 120)
 RED = (255, 0, 0)
 WHITE = (255, 255, 255)
@@ -100,8 +95,8 @@ GREEN = (0, 255, 0)
 BLACK = (0, 0, 0)
 PINK = (235, 65, 54)
 
-# Carregar fonte
-font = pygame.font.SysFont('JetBrainsMono Nerd Font', 20)
+# definir fonte
+font = pygame.font.SysFont('Futura', 30)
 
 
 def draw_text(text, font, text_col, x, y):
@@ -114,16 +109,15 @@ def draw_bg():
     width = sky_img.get_width()
     for x in range(5):
         screen.blit(sky_img, ((x * width) - bg_scroll * 0.5, 0))
-        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6, SCREEN_HEIGHT -
-                    mountain_img.get_height() - 300))
+        screen.blit(mountain_img, ((x * width) - bg_scroll * 0.6,
+                    SCREEN_HEIGHT - mountain_img.get_height() - 300))
         screen.blit(pine1_img, ((x * width) - bg_scroll * 0.7,
                     SCREEN_HEIGHT - pine1_img.get_height() - 150))
         screen.blit(pine2_img, ((x * width) - bg_scroll * 0.8,
                     SCREEN_HEIGHT - pine2_img.get_height()))
 
-# Resetar o nível
 
-
+# função para redefinir o nível
 def reset_level():
     enemy_group.empty()
     bullet_group.empty()
@@ -134,7 +128,7 @@ def reset_level():
     water_group.empty()
     exit_group.empty()
 
-    # cria lista de tiles vazio
+    # criar lista de blocos vazia
     data = []
     for row in range(ROWS):
         r = [-1] * COLS
@@ -142,11 +136,9 @@ def reset_level():
 
     return data
 
-# Classe do jogador
 
-
+# classe do Soldado
 class Soldier(pygame.sprite.Sprite):
-    # Inicializa o jogador
     def __init__(self, char_type, x, y, scale, speed, ammo, grenades):
         pygame.sprite.Sprite.__init__(self)
         self.alive = True
@@ -167,22 +159,21 @@ class Soldier(pygame.sprite.Sprite):
         self.frame_index = 0
         self.action = 0
         self.update_time = pygame.time.get_ticks()
+
         # variáveis ​​específicas de IA
         self.move_counter = 0
         self.vision = pygame.Rect(0, 0, 150, 20)
         self.idling = False
         self.idling_counter = 0
 
-        # Carregar imagens de animação
+        # carregue todas as imagens para os jogadores
         animation_types = ['Idle', 'Run', 'Jump', 'Death']
         for animation in animation_types:
-            # Resetar a lista de temporária de imagens
+            # redefinir lista temporária de imagens
             temp_list = []
-
-            # Contar o número de arquivos no diretório
+            # contar o número de arquivos na pasta
             num_of_frames = len(os.listdir(
                 f'img/{self.char_type}/{animation}'))
-
             for i in range(num_of_frames):
                 img = pygame.image.load(
                     f'img/{self.char_type}/{animation}/{i}.png').convert_alpha()
@@ -197,23 +188,20 @@ class Soldier(pygame.sprite.Sprite):
         self.width = self.image.get_width()
         self.height = self.image.get_height()
 
-    # Atualizar o jogador
     def update(self):
         self.update_animation()
         self.check_alive()
-
-        # Atualizar cooldown
+        # atualizar o tempo de espera
         if self.shoot_cooldown > 0:
             self.shoot_cooldown -= 1
 
-    # Movimento do jogador
     def move(self, moving_left, moving_right):
-        # Redefinir as variáveis de movimento
+        # redefinir variáveis de movimento
         screen_scroll = 0
         dx = 0
         dy = 0
 
-        # Atribuir variáveis de movimento se estiver movendo para a esquerda ou para a direita
+        # atribuir variáveis de movimento se estiver movendo para a esquerda ou para a direita
         if moving_left:
             dx = -self.speed
             self.flip = True
@@ -223,28 +211,28 @@ class Soldier(pygame.sprite.Sprite):
             self.flip = False
             self.direction = 1
 
-        # Pulo
+        # pula
         if self.jump == True and self.in_air == False:
             self.vel_y = -11
             self.jump = False
             self.in_air = True
 
-        # Aplicar gravidade
+        # aplica a gravidade
         self.vel_y += GRAVITY
         if self.vel_y > 10:
             self.vel_y
         dy += self.vel_y
 
-        # Checar colisão com o chão
+        # verifique se há colisão
         for tile in world.obstacle_list:
-            # Checar colisão com o chão na direção x
+            # verifique colisão na direção x
             if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 dx = 0
-                # se a IA atingir uma parede, faça-a virar
+                # se a IA atingiu uma parede, faça-a virar
                 if self.char_type == 'enemy':
                     self.direction *= -1
                     self.move_counter = 0
-            # Checar colisão com o teto na direção y
+            # verifique se há colisão na direção y
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 # verifique se está abaixo do solo, ou seja, pulando
                 if self.vel_y < 0:
@@ -256,17 +244,16 @@ class Soldier(pygame.sprite.Sprite):
                     self.in_air = False
                     dy = tile[1].top - self.rect.bottom
 
-        # checar colisão com água
+        # verifique se há colisão com água
         if pygame.sprite.spritecollide(self, water_group, False):
             self.health = 0
 
-        # Checar colisão com a saída
+        # verifique se há colisão com a saída
         level_complete = False
         if pygame.sprite.spritecollide(self, exit_group, False):
-            # próximo nível
             level_complete = True
 
-        # verifique se caiu no mapa
+        # verifique se caiu do mapa
         if self.rect.bottom > SCREEN_HEIGHT:
             self.health = 0
 
@@ -275,27 +262,27 @@ class Soldier(pygame.sprite.Sprite):
             if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
                 dx = 0
 
-        # Atualizar posição do retângulo
+        # atualizar posição do retângulo
         self.rect.x += dx
         self.rect.y += dy
 
-        # Atualizar a posição do mapa
+        # atualizar a rolagem com base na posição do jogador
         if self.char_type == 'player':
-            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH) or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
+            if (self.rect.right > SCREEN_WIDTH - SCROLL_THRESH and bg_scroll < (world.level_length * TILE_SIZE) - SCREEN_WIDTH)\
+                    or (self.rect.left < SCROLL_THRESH and bg_scroll > abs(dx)):
                 self.rect.x -= dx
                 screen_scroll = -dx
 
         return screen_scroll, level_complete
 
-    # Atirar
     def shoot(self):
         if self.shoot_cooldown == 0 and self.ammo > 0:
             self.shoot_cooldown = 20
-            bullet = Bullet(
-                self.rect.centerx + (0.75 * self.rect.size[0] * self.direction), self.rect.centery, self.direction)
+            bullet = Bullet(self.rect.centerx + (0.75 *
+                            self.rect.size[0] * self.direction), self.rect.centery, self.direction)
             bullet_group.add(bullet)
 
-            # Reduzir munição
+            # reduzir munição
             self.ammo -= 1
             shot_fx.play()
 
@@ -305,12 +292,14 @@ class Soldier(pygame.sprite.Sprite):
                 self.update_action(0)  # 0: idle
                 self.idling = True
                 self.idling_counter = 50
-            # Checar se o jogador está perto
+
+            # verifique se a IA está perto do jogador
             if self.vision.colliderect(player.rect):
-                # Parar e atirar
+
+                # pare de correr e enfrente o jogador
                 self.update_action(0)  # 0: idle
 
-                # Atirar
+                # atirar
                 self.shoot()
             else:
                 if self.idling == False:
@@ -323,7 +312,7 @@ class Soldier(pygame.sprite.Sprite):
                     self.update_action(1)  # 1: run
                     self.move_counter += 1
 
-                    # Atualizar a visão
+                    # atualize a visão da IA conforme o inimigo se move
                     self.vision.center = (
                         self.rect.centerx + 75 * self.direction, self.rect.centery)
 
@@ -335,22 +324,22 @@ class Soldier(pygame.sprite.Sprite):
                     if self.idling_counter <= 0:
                         self.idling = False
 
-        # scroll do mapa
+        # rolagem
         self.rect.x += screen_scroll
 
-    # Atualizar animação
     def update_animation(self):
+        # atualizar animação
         ANIMATION_COOLDOWN = 100
 
-        # Atualizar imagem de animação
+        # atualizar imagem dependendo do quadro atual
         self.image = self.animation_list[self.action][self.frame_index]
 
-        # Verifique se passou tempo suficiente desde a última atualização
+        # verifique se já passou tempo suficiente desde a última atualização
         if pygame.time.get_ticks() - self.update_time > ANIMATION_COOLDOWN:
             self.update_time = pygame.time.get_ticks()
             self.frame_index += 1
 
-        # Se a animação terminar, reinicie
+        # se a animação acabar, reinicie ao início
         if self.frame_index >= len(self.animation_list[self.action]):
             if self.action == 3:
                 self.frame_index = len(self.animation_list[self.action]) - 1
@@ -358,11 +347,11 @@ class Soldier(pygame.sprite.Sprite):
                 self.frame_index = 0
 
     def update_action(self, new_action):
-        # Verifique a nova ação
+        # verifique se a nova ação é diferente da anterior
         if new_action != self.action:
             self.action = new_action
 
-            # Atualizar as configurações da animação
+            # atualizar as configurações de animação
             self.frame_index = 0
             self.update_time = pygame.time.get_ticks()
 
@@ -373,12 +362,9 @@ class Soldier(pygame.sprite.Sprite):
             self.alive = False
             self.update_action(3)
 
-    # Desenhar o jogador na tela
     def draw(self):
         screen.blit(pygame.transform.flip(
             self.image, self.flip, False), self.rect)
-
-# Classe Mapa
 
 
 class World():
@@ -387,6 +373,7 @@ class World():
 
     def process_data(self, data):
         self.level_length = len(data[0])
+
         # iterar através de cada valor no arquivo de dados de nível
         for y, row in enumerate(data):
             for x, tile in enumerate(row):
@@ -396,26 +383,25 @@ class World():
                     img_rect.x = x * TILE_SIZE
                     img_rect.y = y * TILE_SIZE
                     tile_data = (img, img_rect)
-
-                    if tile >= 0 and tile <= 8:  # parede
+                    if tile >= 0 and tile <= 8:
                         self.obstacle_list.append(tile_data)
-                    elif tile >= 9 and tile <= 10:  # agua
+                    elif tile >= 9 and tile <= 10:
                         water = Water(img, x * TILE_SIZE, y * TILE_SIZE)
                         water_group.add(water)
-                    elif tile >= 11 and tile <= 14:  # decoração
+                    elif tile >= 11 and tile <= 14:
                         decoration = Decoration(
                             img, x * TILE_SIZE, y * TILE_SIZE)
                         decoration_group.add(decoration)
-                    elif tile == 15:  # Cria o jogador
-                        player = Soldier("player", x * TILE_SIZE,
+                    elif tile == 15:  # criar jogador
+                        player = Soldier('player', x * TILE_SIZE,
                                          y * TILE_SIZE, 1.65, 5, 20, 5)
-                        Health_bar = HealthBar(
+                        health_bar = HealthBar(
                             10, 10, player.health, player.health)
-                    elif tile == 16:  # criar inimigo
+                    elif tile == 16:  # criar inimigos
                         enemy = Soldier('enemy', x * TILE_SIZE,
                                         y * TILE_SIZE, 1.65, 2, 20, 0)
                         enemy_group.add(enemy)
-                    elif tile == 17:  # criar carixa de armas
+                    elif tile == 17:  # criar caixa de munição
                         item_box = ItemBox(
                             'Ammo', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
@@ -427,17 +413,16 @@ class World():
                         item_box = ItemBox(
                             'Health', x * TILE_SIZE, y * TILE_SIZE)
                         item_box_group.add(item_box)
-                    elif tile == 20:
+                    elif tile == 20:  # criar saída
                         exit = Exit(img, x * TILE_SIZE, y * TILE_SIZE)
                         exit_group.add(exit)
-        return player, Health_bar
+
+        return player, health_bar
 
     def draw(self):
         for tile in self.obstacle_list:
             tile[1][0] += screen_scroll
             screen.blit(tile[0], tile[1])
-
-# Classe Decoração
 
 
 class Decoration(pygame.sprite.Sprite):
@@ -452,7 +437,6 @@ class Decoration(pygame.sprite.Sprite):
         self.rect.x += screen_scroll
 
 
-# Classe Agua
 class Water(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -465,7 +449,6 @@ class Water(pygame.sprite.Sprite):
         self.rect.x += screen_scroll
 
 
-# Classe Sair
 class Exit(pygame.sprite.Sprite):
     def __init__(self, img, x, y):
         pygame.sprite.Sprite.__init__(self)
@@ -477,8 +460,6 @@ class Exit(pygame.sprite.Sprite):
     def update(self):
         self.rect.x += screen_scroll
 
-# Classe Item Box
-
 
 class ItemBox(pygame.sprite.Sprite):
     def __init__(self, item_type, x, y):
@@ -487,12 +468,13 @@ class ItemBox(pygame.sprite.Sprite):
         self.image = item_boxes[self.item_type]
         self.rect = self.image.get_rect()
         self.rect.midtop = (x + TILE_SIZE // 2, y +
-                            (TILE_SIZE // - self.image.get_height()))
+                            (TILE_SIZE - self.image.get_height()))
 
     def update(self):
-        # scroll
+        # rolagem
         self.rect.x += screen_scroll
-        # checa se o jogador coletou a caixa de item
+
+        # verifique se o jogador pegou a caixa
         if pygame.sprite.collide_rect(self, player):
             # verifique que tipo de caixa era
             if self.item_type == 'Health':
@@ -504,7 +486,7 @@ class ItemBox(pygame.sprite.Sprite):
             elif self.item_type == 'Grenade':
                 player.grenades += 3
 
-            # remove a caixa de item
+            # exclua a caixa do item
             self.kill()
 
 
@@ -516,17 +498,13 @@ class HealthBar():
         self.max_health = max_health
 
     def draw(self, health):
-        # Atualizar com nova saúde
+        # update with new health
         self.health = health
-
-        # Calcula a barra de saúde
+        # calculate health ratio
         ratio = self.health / self.max_health
         pygame.draw.rect(screen, BLACK, (self.x - 2, self.y - 2, 154, 24))
         pygame.draw.rect(screen, RED, (self.x, self.y, 150, 20))
         pygame.draw.rect(screen, GREEN, (self.x, self.y, 150 * ratio, 20))
-
-
-# Classe da bala
 
 
 class Bullet(pygame.sprite.Sprite):
@@ -539,19 +517,19 @@ class Bullet(pygame.sprite.Sprite):
         self.direction = direction
 
     def update(self):
-        # Mover a bala
+        # mover bala
         self.rect.x += (self.direction * self.speed) + screen_scroll
 
-        # Checar se a bala saiu da tela
+        # verifique se o marcador saiu da tela
         if self.rect.right < 0 or self.rect.left > SCREEN_WIDTH:
             self.kill()
 
-        # Checar colisão com o mapa
+        # verifique se há colisão com o nível
         for tile in world.obstacle_list:
             if tile[1].colliderect(self.rect):
                 self.kill()
 
-        # Checar colisão com personagens
+        # verifique colisão com personagens
         if pygame.sprite.spritecollide(player, bullet_group, False):
             if player.alive:
                 player.health -= 5
@@ -561,8 +539,6 @@ class Bullet(pygame.sprite.Sprite):
                 if enemy.alive:
                     enemy.health -= 25
                     self.kill()
-
-# Classe da granada
 
 
 class Grenade(pygame.sprite.Sprite):
@@ -583,29 +559,26 @@ class Grenade(pygame.sprite.Sprite):
         dx = self.direction * self.speed
         dy = self.vel_y
 
-        # verifique a colisão com o nível
+        # verifique se há colisão com o nível
         for tile in world.obstacle_list:
             # verifique colisão com paredes
             if tile[1].colliderect(self.rect.x + dx, self.rect.y, self.width, self.height):
                 self.direction *= -1
                 dx = self.direction * self.speed
-            # Checar colisão com o teto na direção y
+
+            # verifique se há colisão na direção y
             if tile[1].colliderect(self.rect.x, self.rect.y + dy, self.width, self.height):
                 self.speed = 0
-                # verifique se está abaixo do solo, ou seja pulando
+
+                # verifique se está abaixo do solo, ou seja, jogado para cima
                 if self.vel_y < 0:
                     self.vel_y = 0
                     dy = tile[1].bottom - self.rect.top
+
                 # verifique se está acima do solo, ou seja, caindo
                 elif self.vel_y >= 0:
                     self.vel_y = 0
-                    self.in_air = False
                     dy = tile[1].top - self.rect.bottom
-
-        # verifique colisão com paredes
-        if self.rect.left + dx < 0 or self.rect.right + dx > SCREEN_WIDTH:
-            self.direction *= -1
-            dx = self.direction * self.speed
 
         # atualizar posição da granada
         self.rect.x += dx + screen_scroll
@@ -618,6 +591,7 @@ class Grenade(pygame.sprite.Sprite):
             grenade_fx.play()
             explosion = Explosion(self.rect.x, self.rect.y, 0.5)
             explosion_group.add(explosion)
+
             # causar danos a qualquer pessoa que esteja por perto
             if abs(self.rect.centerx - player.rect.centerx) < TILE_SIZE * 2 and \
                     abs(self.rect.centery - player.rect.centery) < TILE_SIZE * 2:
@@ -628,7 +602,6 @@ class Grenade(pygame.sprite.Sprite):
                     enemy.health -= 50
 
 
-# Classe da explosão
 class Explosion(pygame.sprite.Sprite):
     def __init__(self, x, y, scale):
         pygame.sprite.Sprite.__init__(self)
@@ -646,31 +619,29 @@ class Explosion(pygame.sprite.Sprite):
         self.counter = 0
 
     def update(self):
-        # scroll
+        # rolagem
         self.rect.x += screen_scroll
 
         EXPLOSION_SPEED = 4
 
-        # atualiza a animação da explosão
+        # atualizar animação de explosão
         self.counter += 1
 
         if self.counter >= EXPLOSION_SPEED:
             self.counter = 0
             self.frame_index += 1
 
-            # se a animação da explosão terminar, então delete a explosão
+            # se a animação estiver completa, exclua a explosão
             if self.frame_index >= len(self.images):
                 self.kill()
             else:
                 self.image = self.images[self.frame_index]
 
-# Classe da tela de fade
-
 
 class ScreenFade():
-    def __init__(self, direction, color, speed):
+    def __init__(self, direction, colour, speed):
         self.direction = direction
-        self.color = color
+        self.colour = colour
         self.speed = speed
         self.fade_counter = 0
 
@@ -679,35 +650,36 @@ class ScreenFade():
         self.fade_counter += self.speed
         if self.direction == 1:  # desbotamento da tela inteira
             pygame.draw.rect(
-                screen, self.color, (0 - self.fade_counter, 0, SCREEN_WIDTH // 2, SCREEN_HEIGHT))
-            pygame.draw.rect(screen, self.color, (SCREEN_WIDTH //
+                screen, self.colour, (0 - self.fade_counter, 0, SCREEN_WIDTH // 2, SCREEN_HEIGHT))
+            pygame.draw.rect(screen, self.colour, (SCREEN_WIDTH //
                              2 + self.fade_counter, 0, SCREEN_WIDTH, SCREEN_HEIGHT))
-            pygame.draw.rect(screen, self.color, (0, 0 -
+            pygame.draw.rect(screen, self.colour, (0, 0 -
                              self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT // 2))
-            pygame.draw.rect(screen, self.color, (0, SCREEN_HEIGHT //
+            pygame.draw.rect(screen, self.colour, (0, SCREEN_HEIGHT //
                              2 + self.fade_counter, SCREEN_WIDTH, SCREEN_HEIGHT))
-        if self.direction == 2:  # desbotamento da tela inteira
-            pygame.draw.rect(screen, self.color,
+        if self.direction == 2:  # tela vertical desaparece
+            pygame.draw.rect(screen, self.colour,
                              (0, 0, SCREEN_WIDTH, 0 + self.fade_counter))
-        if self.fade_counter >= SCREEN_HEIGHT:
+        if self.fade_counter >= SCREEN_WIDTH:
             fade_complete = True
 
         return fade_complete
 
 
-# Cria tela de fade
-intro_face  = ScreenFade(1, BLACK, 4)
+# criar fades de tela
+intro_fade = ScreenFade(1, BLACK, 4)
 death_fade = ScreenFade(2, PINK, 4)
 
-# cria sprite do status do jogador
-start_button = button.Button(
-    SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 150, start_png, 1)
-exit_button = button.Button(SCREEN_WIDTH // 2 - 110,
-                            SCREEN_HEIGHT // 2 + 50, exit_png, 1)
-restart_button = button.Button(SCREEN_WIDTH // 2 - 100,
-                               SCREEN_HEIGHT // 2 - 50, restart_png, 2)
 
-# Criar grupos de sprites
+# criar botões
+start_button = button.Button(
+    SCREEN_WIDTH // 2 - 130, SCREEN_HEIGHT // 2 - 150, start_img, 1)
+exit_button = button.Button(SCREEN_WIDTH // 2 - 110,
+                            SCREEN_HEIGHT // 2 + 50, exit_img, 1)
+restart_button = button.Button(
+    SCREEN_WIDTH // 2 - 100, SCREEN_HEIGHT // 2 - 50, restart_img, 2)
+
+# criar grupos de sprites
 enemy_group = pygame.sprite.Group()
 bullet_group = pygame.sprite.Group()
 grenade_group = pygame.sprite.Group()
@@ -717,13 +689,14 @@ decoration_group = pygame.sprite.Group()
 water_group = pygame.sprite.Group()
 exit_group = pygame.sprite.Group()
 
-# Criar lista de tiles vazio
+
+# criar lista de blocos vazia
 world_data = []
 for row in range(ROWS):
     r = [-1] * COLS
     world_data.append(r)
 
-# Carregar dados do nível e criar mundo
+# carregar dados de nível e criar mundo
 with open(f'level{level}_data.csv', newline='') as csvfile:
     reader = csv.reader(csvfile, delimiter=',')
     for x, row in enumerate(reader):
@@ -732,53 +705,51 @@ with open(f'level{level}_data.csv', newline='') as csvfile:
 world = World()
 player, health_bar = world.process_data(world_data)
 
+
 run = True
 while run:
-    # Limita a taxa de quadros
+
     clock.tick(FPS)
 
-    # Start game
     if start_game == False:
-        # Cria tela inicial (MENU)
+        # desenhar menu
         screen.fill(BG)
 
-        # Adiciona botão de início
+        # adicionar botões
         if start_button.draw(screen):
             start_game = True
             start_intro = True
-        # Adiciona botão de saída
         if exit_button.draw(screen):
             run = False
     else:
-        # Criar o fundo
+        # atualizar plano de fundo
         draw_bg()
 
-        # Cria o mapa
+        # desenhar mapa mundial
         world.draw()
 
-        # mostra a vida
+        # mostrar a saúde do jogador
         health_bar.draw(player.health)
 
-        # mostra a munição
-        draw_text('Munição: ', font, WHITE, 10, 35)
+        # mostrar munição
+        draw_text('MUNIÇÃO: ', font, WHITE, 10, 35)
         for x in range(player.ammo):
-            screen.blit(bullet_img, (110 + (x * 10), 45))
-        # mostra as granadas
-        draw_text('Granadas: ', font, WHITE, 10, 60)
-        for x in range(player.grenades):
-            screen.blit(grenade_img, (120 + (x * 15), 68))
+            screen.blit(bullet_img, (90 + (x * 10), 40))
 
-        # Atualiza player na tela
+        # mostrar granadas
+        draw_text('GRANADA: ', font, WHITE, 10, 60)
+        for x in range(player.grenades):
+            screen.blit(grenade_img, (135 + (x * 15), 60))
+
         player.update()
         player.draw()
 
-        # Atualiza inimigo na tela
         for enemy in enemy_group:
             enemy.ai()
             enemy.update()
             enemy.draw()
 
-        # Atualiza a tela após desenhar
+        # atualizar e desenhar grupos
         bullet_group.update()
         grenade_group.update()
         explosion_group.update()
@@ -786,8 +757,6 @@ while run:
         decoration_group.update()
         water_group.update()
         exit_group.update()
-
-        # Desenhar grupos de sprites
         bullet_group.draw(screen)
         grenade_group.draw(screen)
         explosion_group.draw(screen)
@@ -796,42 +765,45 @@ while run:
         water_group.draw(screen)
         exit_group.draw(screen)
 
-        # Monstrar a tela de introdução
+        # mostrar introdução
         if start_intro == True:
-            if intro_face.fade():
+            if intro_fade.fade():
                 start_intro = False
-                intro_face.fade_counter = 0
+                intro_fade.fade_counter = 0
 
-        # Movimento do jogador
+        # atualizar ações do jogador
         if player.alive:
+            # atirar balas
             if shoot:
                 player.shoot()
+
+            # lançar granadas
             elif grenade and grenade_thrown == False and player.grenades > 0:
-                grenade = Grenade(player.rect.centerx + (
-                    0.6 * player.rect.size[0] * player.direction), player.rect.top, player.direction)
+                grenade = Grenade(player.rect.centerx + (0.5 * player.rect.size[0] * player.direction),
+                                  player.rect.top, player.direction)
                 grenade_group.add(grenade)
 
-                # Reduzir granadas
+                # reduzir granadas
                 player.grenades -= 1
                 grenade_thrown = True
             if player.in_air:
-                player.update_action(2)  # 2: jump
+                player.update_action(2)  # 2: pula
             elif moving_left or moving_right:
-                player.update_action(1)  # 1: run
+                player.update_action(1)  # 1: corre
             else:
-                player.update_action(0)  # 0: idle
+                player.update_action(0)  # 0: anda
             screen_scroll, level_complete = player.move(
                 moving_left, moving_right)
             bg_scroll -= screen_scroll
 
-            # se o jogador completou o nível
+            # verifique se o jogador completou o nível
             if level_complete:
                 start_intro = True
                 level += 1
                 bg_scroll = 0
                 world_data = reset_level()
                 if level <= MAX_LEVELS:
-                    # Carregar dados do nível e criar mundo
+                    # carregar dados de nível e criar mundo
                     with open(f'level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         for x, row in enumerate(reader):
@@ -843,13 +815,12 @@ while run:
             screen_scroll = 0
             if death_fade.fade():
                 if restart_button.draw(screen):
-                    # resetar o jogo e o nível
                     death_fade.fade_counter = 0
                     start_intro = True
-
-                    # resetar o jogo e o nível
                     bg_scroll = 0
                     world_data = reset_level()
+
+                    # carregar dados de nível e criar mundo
                     with open(f'level{level}_data.csv', newline='') as csvfile:
                         reader = csv.reader(csvfile, delimiter=',')
                         for x, row in enumerate(reader):
@@ -858,14 +829,12 @@ while run:
                     world = World()
                     player, health_bar = world.process_data(world_data)
 
-    # Atualiza a tela
-
     for event in pygame.event.get():
-        # Sai do game
+        # desistir do jogo
         if event.type == pygame.QUIT:
             run = False
 
-        # Teclas pressionadas
+        # pressionamentos de teclado
         if event.type == pygame.KEYDOWN:
             if event.key == pygame.K_a:
                 moving_left = True
@@ -881,22 +850,18 @@ while run:
             if event.key == pygame.K_ESCAPE:
                 run = False
 
-        # Botão do teclado liberado
+        # botão do teclado liberado
         if event.type == pygame.KEYUP:
             if event.key == pygame.K_a:
                 moving_left = False
             if event.key == pygame.K_d:
                 moving_right = False
-            if event.key == pygame.K_w:
-                player.jump = False
             if event.key == pygame.K_SPACE:
                 shoot = False
             if event.key == pygame.K_q:
                 grenade = False
                 grenade_thrown = False
 
-    # Atualiza a tela
     pygame.display.update()
 
-# Fecha o game
 pygame.quit()
