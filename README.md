@@ -12,6 +12,13 @@
 
 Bem-vindo ao nosso projeto de Shooter Game desenvolvido na liguagem Python! Este game, desenvolvido com Python, é um simples estudo realizado com a biblioteca pygame, biblioteca especifica para criar jogos para plataforma.
 
+## Imagem o Projeto
+
+<h1 align="center">
+    <a href="https://imgur.com/aOc4MdF"><img src="https://i.imgur.com/aOc4MdF.png" title="source: imgur.com" /></a>
+    <br />
+    <a href="https://imgur.com/Hs45XQg"><img src="https://i.imgur.com/Hs45XQg.png" title="source: imgur.com" /></a>
+</h1>
 
 ```bash
     # Clone o Repositório:
