@@ -5,7 +5,7 @@
 </h1>
 
 <h4 align="center">
-    🚀 Em Desenvolvimento 🚀
+    🚀 Finalizado 🚀
 </h4>
 
 ## Sobre o Projeto
