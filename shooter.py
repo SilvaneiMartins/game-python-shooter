@@ -96,7 +96,7 @@ BLACK = (0, 0, 0)
 PINK = (235, 65, 54)
 
 # definir fonte
-font = pygame.font.SysFont('Futura', 30)
+font = pygame.font.SysFont('Futura', 25)
 
 
 def draw_text(text, font, text_col, x, y):
@@ -734,12 +734,12 @@ while run:
         # mostrar munição
         draw_text('MUNIÇÃO: ', font, WHITE, 10, 35)
         for x in range(player.ammo):
-            screen.blit(bullet_img, (90 + (x * 10), 40))
+            screen.blit(bullet_img, (98 + (x * 10), 40))
 
         # mostrar granadas
         draw_text('GRANADA: ', font, WHITE, 10, 60)
         for x in range(player.grenades):
-            screen.blit(grenade_img, (135 + (x * 15), 60))
+            screen.blit(grenade_img, (108 + (x * 15), 60))
 
         player.update()
         player.draw()
@@ -836,15 +836,15 @@ while run:
 
         # pressionamentos de teclado
         if event.type == pygame.KEYDOWN:
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_LEFT:
                 moving_left = True
-            if event.key == pygame.K_d:
+            if event.key == pygame.K_RIGHT:
                 moving_right = True
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_w:
                 shoot = True
             if event.key == pygame.K_q:
                 grenade = True
-            if event.key == pygame.K_w and player.alive:
+            if event.key == pygame.K_SPACE and player.alive:
                 player.jump = True
                 jump_fx.play()
             if event.key == pygame.K_ESCAPE:
@@ -852,11 +852,11 @@ while run:
 
         # botão do teclado liberado
         if event.type == pygame.KEYUP:
-            if event.key == pygame.K_a:
+            if event.key == pygame.K_LEFT:
                 moving_left = False
-            if event.key == pygame.K_d:
+            if event.key == pygame.K_RIGHT:
                 moving_right = False
-            if event.key == pygame.K_SPACE:
+            if event.key == pygame.K_w:
                 shoot = False
             if event.key == pygame.K_q:
                 grenade = False
